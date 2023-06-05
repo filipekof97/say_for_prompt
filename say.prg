@@ -1,9 +1,8 @@
-
 /*
 * Programador(a): Filipe da Silva Carvalho
 * Criado em.....: 03/06/2023
 * Funcao........: Rotina para facilitar a escrita de logs ou mensagens de controle para PROMPT, de forma a posibilitar a utiliza√ß√£o de v√°rias cores.
-* Linguagem.....: Harbour (x64)
+* Linguagem.....: Harbour (xBase)
 * Compilador....: hbmk2
 */
 
@@ -28,22 +27,21 @@
 #define COR_CINZA     'N+'
 
 /******************************************************************************/
-procedure Main( ... )
+procedure main( ... )
 
    local aParametros, aMensagem, aMensagens
 
-   aParametros := hb_AParams()
-   //? hb_ValToExp(aParametros)
+   aParametros := Hb_AParams()
 
-   if Empty( aParametros ) .or. !CarregarParametros( aParametros, @aMensagens)
+   if Empty( aParametros )
       Help()
       return
    endif
 
-   for each aMensagem in aMensagens
-      //? hb_ValToExp(aMensagem)
-      @ aMensagem[ ARRAY_MENSAGEM_LINHA ],aMensagem[ ARRAY_MENSAGEM_COLUNA ] say aMensagem[ ARRAY_MENSAGEM_CONTEUDO ] color aMensagem[ ARRAY_MENSAGEM_COR_FORE ] + '/' + aMensagem[ ARRAY_MENSAGEM_COR_BACK ]
+   CarregarParametros( aParametros, @aMensagens)
 
+   for each aMensagem in aMensagens
+      @ aMensagem[ ARRAY_MENSAGEM_LINHA ],aMensagem[ ARRAY_MENSAGEM_COLUNA ] say aMensagem[ ARRAY_MENSAGEM_CONTEUDO ] color aMensagem[ ARRAY_MENSAGEM_COR_FORE ] + '/' + aMensagem[ ARRAY_MENSAGEM_COR_BACK ]
    next
 
    ? ''
@@ -53,98 +51,82 @@ return
 /******************************************************************************/
 static procedure Help()
 
-   ? "fore="
-   ? "back="
-   ? "-m"
-   // say -m "Mensagem de Teste" fore=blue
+   ? '   Sintaxe: say <mensagem> [<fore=cor>] [<back=cor>] ...'
+   ? ' '
+   ? '   <mensagem>: [Obrigatorio] Mensagem que sera exibida.'
+   ? '   <fore=cor>: [Opcionar] Cor da letra exibida, sendo por padr„o branco'
+   ? '   <back=cor>: [Opcionar] Cor de fundo da escrita, sendo por padr„o preto'
+   ? ' '
+   ? '   Lista de cores: preto, branco, vermelho, amarelo, azul, verde, cinza'
+   ? ' '
+   ? ' Ex: say "Mensagem teste"'
+   ? '     say "Mensagem com cor" fore=red'
+   ? '     say "Mensagem " fore=branco "concatenada" fore=green'
+   ? ' '
 
-   ? "-f"
-   // say -f "Status: ; fore=teste| Em processamento; fore=green"
 return
 
 /******************************************************************************/
 static function CarregarParametros( aParametros, aMensagens )
 
-   local cTipoFormatacao, nColuna, aParametrosAux
+   local nColuna, cMensagem, cForeground, cBackGround
 
    aMensagens := {}
+   nColuna    := Col()
 
-   /* Foreground and background color pair separated by the slash (/) */
+   do while !Empty( aParametros )
 
-   cTipoFormatacao := aParametros[ 1 ] /* -m or -f */
-   hb_ADel( aParametros, 1, .t. )
+      cMensagem    := ''
+      cForeground  := ''
+      cBackGround  := ''
 
-   if cTipoFormatacao == TIPO_FORMATACAO_SIMPLES
+      do while !Empty( aParametros )
 
-      AdicionarMensagem( @aMensagens, aParametros, Row(), Col() )
+         if !Empty( Hb_At( 'FORE=', Upper( aParametros[ 1 ] ) ) )
+            if !Empty( cForeground )
+               exit
+            endif
 
+            cForeground := ConvertePadraoCoresHarbour( Alltrim( StrTran( Upper( aParametros[ 1 ] ), 'FORE=', '') ), COR_BRANCA )
 
-   elseif cTipoFormatacao == TIPO_FORMATACAO_COMPOSTO
+         elseif !Empty( Hb_At( 'BACK=', Upper( aParametros[ 1 ] ) ) )
+            if !Empty( cBackGround )
+               exit
+            endif
 
-      aParametros    := hb_ATokens( aParametros[ 1 ], '|' )
-      aParametrosAux := AClone( aParametros )
-      nColuna        := Col()
-      aParametros    := {}
+            cBackGround :=  ConvertePadraoCoresHarbour( AllTrim( StrTran( Upper( aParametros[ 1 ] ), 'BACK=', '' ) ), COR_PRETA )
 
-      AEval( aParametrosAux, { | x | AAdd( aParametros, hb_ATokens( x, ';' ) ) } )
+         else
+            if !Empty( cMensagem )
+               exit
+            endif
 
-      for each aParametrosAux in aParametros
-         AdicionarMensagem( @aMensagens, aParametrosAux, Row(), nColuna )
-         nColuna += Len( aMensagens[ Len( aMensagens ), ARRAY_MENSAGEM_CONTEUDO ] )
-      next
+            cMensagem := aParametros[ 1 ]
 
-   else
-      ? 'ERRO: Opcao desconhecida [' + cTipoFormatacao + ']'
-      return .f.
+         endif
 
-   endif
+         hb_ADel( aParametros, 1, .t. )
+      enddo
+
+      if Empty( cForeground )
+         cForeground := COR_BRANCA
+      endif
+
+      if Empty( cBackground )
+         cBackground := COR_PRETA
+      endif
+
+      AAdd( aMensagens, { Row()       ,;  /* ARRAY_MENSAGEM_LINHA    */
+                          nColuna     ,;  /* ARRAY_MENSAGEM_COLUNA   */
+                          cMensagem   ,;  /* ARRAY_MENSAGEM_CONTEUDO */
+                          cForeground ,;  /* ARRAY_MENSAGEM_COR_FORE */
+                          cBackground } ) /* ARRAY_MENSAGEM_COR_BACK */
+
+      nColuna += Len( aMensagens[ Len( aMensagens ), ARRAY_MENSAGEM_CONTEUDO ] )
+
+   enddo
 
 return .t.
-
-/******************************************************************************/
-static procedure AdicionarMensagem( aMensagens, aParametros, nLinha, nColuna )
-
-   local cCorForeground, cCorBackground, cMensagem
-
-   cCorForeground := COR_BRANCA
-   cCorBackground := COR_PRETA
-
-   CarregarMensagemArray( aParametros, @cCorForeground, @cCorBackground, @cMensagem )
-
-   AAdd( aMensagens, { nLinha        ,; /* ARRAY_MENSAGEM_LINHA    */
-                       nColuna       ,; /* ARRAY_MENSAGEM_COLUNA   */
-                       cMensagem     ,; /* ARRAY_MENSAGEM_CONTEUDO */
-                       cCorForeground,; /* ARRAY_MENSAGEM_COR_FORE */
-                       cCorBackground}) /* ARRAY_MENSAGEM_COR_BACK */
-
-return
-
-
-/******************************************************************************/
-static procedure CarregarMensagemArray( aParametros, cCorForeground, cCorBackground, cMensagem )
-
-   local nPosicao
-
-   /* Foreground */
-   nPosicao := AScan( aParametros, { | x | !Empty( hb_at( 'FORE=', Upper( x ) ) ) } )
-   if !Empty( nPosicao )
-      cCorForeground := ConvertePadraoCoresHarbour( Alltrim( StrTran( Upper( aParametros[ nPosicao ] ), 'FORE=', '') ), COR_BRANCA )
-      hb_ADel( aParametros, nPosicao, .t. )
-   endif
-
-   /* Background */
-   nPosicao := AScan( aParametros, { | x | !Empty( hb_at( 'BACK=', Upper( x ) ) ) } )
-   if !Empty( nPosicao )
-      cCorBackground := ConvertePadraoCoresHarbour( AllTrim( StrTran( Upper( aParametros[ nPosicao ] ) ), 'BACK=', ''), COR_PRETA )
-      hb_ADel( aParametros, nPosicao, .t. )
-   endif
-
-   cMensagem := ''
-   if !Empty( aParametros )
-      cMensagem += ArrayToString( aParametros )
-   endif
-
-return
 
 /******************************************************************************/
 static function ConvertePadraoCoresHarbour( cNomeCorUpper, cCorDefault )
@@ -178,24 +160,3 @@ return cCorDefault
 static function InArray( xValue, aArray )
 
 return !Empty( AScan( aArray, { | x | x == xValue } ) )
-
-/******************************************************************************/
-static function ArrayToString( aArray, cSeparador )
-
-   local cString
-
-   if Empty( cSeparador )
-      cSeparador := ''
-   endif
-
-   cString := ''
-
-   AEval( aArray, { | x | cString += x + cSeparador } )
-
-   if !Empty( cString )
-      cString := SubStr( cString, 0, Len( cString ) - 1 )
-   endif
-
-return cString
-
-

@@ -1,21 +1,15 @@
 /*
-* Programador(a): Filipe da Silva Carvalho
+* Programador...: Filipe da Silva Carvalho
 * Criado em.....: 03/06/2023
-* Funcao........: Rotina para facilitar a escrita de logs ou mensagens de controle para PROMPT, de forma a posibilitar a utilização de várias cores.
+* Funcao........: Rotina para facilitar a escrita de logs ou mensagens de controle para PROMPT, de forma a posibilitar a utilizacao de varias cores.
 * Linguagem.....: Harbour (xBase)
 * Compilador....: hbmk2
 */
 
-/* Tipo de Formatação*/
-#define TIPO_FORMATACAO_SIMPLES   '-m'
-#define TIPO_FORMATACAO_COMPOSTO  '-f'
-
 /* Array da Mensagem */
-#define ARRAY_MENSAGEM_LINHA      1
-#define ARRAY_MENSAGEM_COLUNA     2
-#define ARRAY_MENSAGEM_CONTEUDO   3
-#define ARRAY_MENSAGEM_COR_FORE   4
-#define ARRAY_MENSAGEM_COR_BACK   5
+#define ARRAY_MENSAGEM_CONTEUDO   1
+#define ARRAY_MENSAGEM_COR_FORE   2
+#define ARRAY_MENSAGEM_COR_BACK   3
 
 /* Cores */
 #define COR_PRETA     'N'
@@ -41,7 +35,8 @@ procedure main( ... )
    CarregarParametros( aParametros, @aMensagens)
 
    for each aMensagem in aMensagens
-      @ aMensagem[ ARRAY_MENSAGEM_LINHA ],aMensagem[ ARRAY_MENSAGEM_COLUNA ] say aMensagem[ ARRAY_MENSAGEM_CONTEUDO ] color aMensagem[ ARRAY_MENSAGEM_COR_FORE ] + '/' + aMensagem[ ARRAY_MENSAGEM_COR_BACK ]
+      SetColor( aMensagem[ ARRAY_MENSAGEM_COR_FORE ] + '/' + aMensagem[ ARRAY_MENSAGEM_COR_BACK ] )
+      ?? aMensagem[ ARRAY_MENSAGEM_CONTEUDO ]
    next
 
    ? ''
@@ -58,6 +53,8 @@ static procedure Help()
    ? '   <back=cor>: [Opcional] Cor de fundo da escrita, sendo por padrao preto'
    ? ' '
    ? '   Lista de cores: preto, branco, vermelho, amarelo, azul, verde, cinza'
+   ? '                   (black, white, red, yellow, blue, green, gray)'
+   ? ' '
    ? ' '
    ? '     Ex: say "Mensagem teste"'
    ? '         say "Mensagem com cor" fore=red'
@@ -67,18 +64,18 @@ static procedure Help()
 return
 
 /******************************************************************************/
-static function CarregarParametros( aParametros, aMensagens )
+static procedure CarregarParametros( aParametros, aMensagens )
 
-   local nColuna, cMensagem, cForeground, cBackGround
+   local cMensagem, cForeground, cBackground
 
    aMensagens := {}
-   nColuna    := Col()
+
 
    do while !Empty( aParametros )
 
       cMensagem    := ''
       cForeground  := ''
-      cBackGround  := ''
+      cBackground  := ''
 
       do while !Empty( aParametros )
 
@@ -90,11 +87,11 @@ static function CarregarParametros( aParametros, aMensagens )
             cForeground := ConvertePadraoCoresHarbour( Alltrim( StrTran( Upper( aParametros[ 1 ] ), 'FORE=', '') ), COR_BRANCA )
 
          elseif !Empty( Hb_At( 'BACK=', Upper( aParametros[ 1 ] ) ) )
-            if !Empty( cBackGround )
+            if !Empty( cBackground )
                exit
             endif
 
-            cBackGround :=  ConvertePadraoCoresHarbour( AllTrim( StrTran( Upper( aParametros[ 1 ] ), 'BACK=', '' ) ), COR_PRETA )
+            cBackground :=  ConvertePadraoCoresHarbour( AllTrim( StrTran( Upper( aParametros[ 1 ] ), 'BACK=', '' ) ), COR_PRETA )
 
          else
             if !Empty( cMensagem )
@@ -116,17 +113,13 @@ static function CarregarParametros( aParametros, aMensagens )
          cBackground := COR_PRETA
       endif
 
-      AAdd( aMensagens, { Row()       ,;  /* ARRAY_MENSAGEM_LINHA    */
-                          nColuna     ,;  /* ARRAY_MENSAGEM_COLUNA   */
-                          cMensagem   ,;  /* ARRAY_MENSAGEM_CONTEUDO */
+      AAdd( aMensagens, { cMensagem   ,;  /* ARRAY_MENSAGEM_CONTEUDO */
                           cForeground ,;  /* ARRAY_MENSAGEM_COR_FORE */
                           cBackground } ) /* ARRAY_MENSAGEM_COR_BACK */
 
-      nColuna += Len( aMensagens[ Len( aMensagens ), ARRAY_MENSAGEM_CONTEUDO ] )
-
    enddo
 
-return .t.
+return
 
 /******************************************************************************/
 static function ConvertePadraoCoresHarbour( cNomeCorUpper, cCorDefault )

@@ -1,6 +1,6 @@
 # say_for_prompt
 
-**Descrição geral do projeto:** Rotina para facilitar escrever logs ou mensagens em Prompt/Bash de forma a posibilitar a escrita em várias cores.
+**Descrição geral do projeto:** Rotina para facilitar escrever logs ou mensagens em Prompt/Bash de forma a possibilitar a escrita em várias cores.
 
 
 
